@@ -1,0 +1,120 @@
+[GIN-debug] GET    /                         --> github.com/rs-pro/docker-exec-api/api.GetRouter.func1 (4 handlers)
+[GIN-debug] GET    /robots.txt               --> github.com/rs-pro/docker-exec-api/api.GetRouter.func2 (4 handlers)
+[GIN-debug] POST   /start                    --> github.com/rs-pro/docker-exec-api/api.GetRouter.func3 (4 handlers)
+[GIN-debug] GET    /ws/:id                   --> github.com/rs-pro/docker-exec-api/api.GetRouter.func4 (4 handlers)
+[GIN-debug] GET    /health                   --> github.com/rs-pro/docker-exec-api/api.GetRouter.func5 (4 handlers)
+[GIN-debug] Listening and serving HTTP on :12010
+[GIN] 2020/07/06 - 23:00:58 | 404 |       1.211µs |       127.0.0.1 | POST     "/health"
+[GIN] 2020/07/06 - 23:01:01 | 404 |       1.536µs |       127.0.0.1 | POST     "/health"
+[GIN] 2020/07/06 - 23:01:17 | 404 |       1.376µs |       127.0.0.1 | POST     "/health"
+[GIN] 2020/07/06 - 23:01:22 | 200 |      53.252µs |       127.0.0.1 | GET      "/health"
+[GIN] 2020/07/06 - 23:01:27 | 404 |       1.185µs |       127.0.0.1 | POST     "/"
+[GIN] 2020/07/06 - 23:01:35 | 500 |    3.436244ms |       127.0.0.1 | POST     "/start"
+[GIN] 2020/07/06 - 23:02:36 | 500 |     813.296µs |       127.0.0.1 | POST     "/start"
+[GIN-debug] GET    /                         --> github.com/rs-pro/docker-exec-api/api.GetRouter.func1 (4 handlers)
+[GIN-debug] GET    /robots.txt               --> github.com/rs-pro/docker-exec-api/api.GetRouter.func2 (4 handlers)
+[GIN-debug] POST   /start                    --> github.com/rs-pro/docker-exec-api/api.GetRouter.func3 (4 handlers)
+[GIN-debug] GET    /ws/:id                   --> github.com/rs-pro/docker-exec-api/api.GetRouter.func4 (4 handlers)
+[GIN-debug] GET    /health                   --> github.com/rs-pro/docker-exec-api/api.GetRouter.func5 (4 handlers)
+[GIN-debug] Listening and serving HTTP on :12010
+[GIN] 2020/07/06 - 23:02:40 | 500 |    1.400156ms |       127.0.0.1 | POST     "/start"
+[GIN] 2020/07/06 - 23:09:29 | 500 |     914.116µs |       127.0.0.1 | POST     "/start"
+[GIN] 2020/07/06 - 23:12:36 | 500 |     900.844µs |       127.0.0.1 | POST     "/start"
+[GIN-debug] GET    /                         --> github.com/rs-pro/docker-exec-api/api.GetRouter.func1 (4 handlers)
+[GIN-debug] GET    /robots.txt               --> github.com/rs-pro/docker-exec-api/api.GetRouter.func2 (4 handlers)
+[GIN-debug] POST   /start                    --> github.com/rs-pro/docker-exec-api/api.GetRouter.func3 (4 handlers)
+[GIN-debug] GET    /ws/:id                   --> github.com/rs-pro/docker-exec-api/api.GetRouter.func4 (4 handlers)
+[GIN-debug] GET    /health                   --> github.com/rs-pro/docker-exec-api/api.GetRouter.func5 (4 handlers)
+[GIN-debug] Listening and serving HTTP on 127.0.0.1:12010
+[GIN-debug] GET    /                         --> github.com/rs-pro/docker-exec-api/api.GetRouter.func1 (4 handlers)
+[GIN-debug] GET    /robots.txt               --> github.com/rs-pro/docker-exec-api/api.GetRouter.func2 (4 handlers)
+[GIN-debug] POST   /start                    --> github.com/rs-pro/docker-exec-api/api.GetRouter.func3 (4 handlers)
+[GIN-debug] GET    /ws/:id                   --> github.com/rs-pro/docker-exec-api/api.GetRouter.func4 (4 handlers)
+[GIN-debug] GET    /health                   --> github.com/rs-pro/docker-exec-api/api.GetRouter.func5 (4 handlers)
+[GIN-debug] Listening and serving HTTP on 127.0.0.1:12010
+[GIN-debug] GET    /                         --> github.com/rs-pro/docker-exec-api/api.GetRouter.func1 (4 handlers)
+[GIN-debug] GET    /robots.txt               --> github.com/rs-pro/docker-exec-api/api.GetRouter.func2 (4 handlers)
+[GIN-debug] POST   /start                    --> github.com/rs-pro/docker-exec-api/api.GetRouter.func3 (4 handlers)
+[GIN-debug] GET    /ws/:id                   --> github.com/rs-pro/docker-exec-api/api.GetRouter.func4 (4 handlers)
+[GIN-debug] GET    /health                   --> github.com/rs-pro/docker-exec-api/api.GetRouter.func5 (4 handlers)
+[GIN-debug] Listening and serving HTTP on 127.0.0.1:12010
+[GIN] 2020/07/06 - 23:13:56 | 500 |    1.272181ms |       127.0.0.1 | POST     "/start"
+[dea] starting HTTP api at 127.0.0.1:12010[GIN] 2020/07/06 - 23:20:17 | 500 |    1.361494ms |       127.0.0.1 | POST     "/start"
+[GIN] 2020/07/06 - 23:20:30 | 500 |  1.717384845s |       127.0.0.1 | POST     "/start"
+[GIN] 2020/07/06 - 23:21:17 | 500 |  1.663294722s |       127.0.0.1 | POST     "/start"
+[GIN] 2020/07/06 - 23:27:55 | 500 |  1.808038233s |       127.0.0.1 | POST     "/start"
+[dea] starting HTTP api at 127.0.0.1:12010[GIN] 2020/07/06 - 23:30:08 | 500 |  3.717346799s |       127.0.0.1 | POST     "/start"
+[dea] starting HTTP api at 127.0.0.1:12010[dea] starting HTTP api at 127.0.0.1:12010[GIN] 2020/07/06 - 23:32:14 | 200 | 40.290111168s |       127.0.0.1 | POST     "/start"
+[dea] starting HTTP api at 127.0.0.1:12010
+[GIN] 2020/07/06 - 23:39:31 | 200 | 39.251983642s |       127.0.0.1 | POST     "/start"
+[GIN] 2020/07/06 - 23:58:41 | 200 |     113.182µs |       127.0.0.1 | GET      "/"
+[GIN] 2020/07/06 - 23:58:57 | 404 |     112.239µs |       127.0.0.1 | GET      "/ws/56f1770b6c1cb29e8338c5d25775f2fd48f13c6d9a25459e4ee46fba726810d8"
+[GIN] 2020/07/06 - 23:59:39 | 404 |     156.563µs |       127.0.0.1 | GET      "/ws/56f1770b6c1cb29e8338c5d25775f2fd48f13c6d9a25459e4ee46fba726810d8"
+[GIN] 2020/07/06 - 23:59:40 | 404 |     111.883µs |       127.0.0.1 | GET      "/ws/56f1770b6c1cb29e8338c5d25775f2fd48f13c6d9a25459e4ee46fba726810d8"
+[GIN] 2020/07/06 - 23:59:41 | 404 |      25.249µs |       127.0.0.1 | GET      "/ws/56f1770b6c1cb29e8338c5d25775f2fd48f13c6d9a25459e4ee46fba726810d8"
+[GIN] 2020/07/06 - 23:59:41 | 404 |     112.982µs |       127.0.0.1 | GET      "/ws/56f1770b6c1cb29e8338c5d25775f2fd48f13c6d9a25459e4ee46fba726810d8"
+[GIN] 2020/07/06 - 23:59:43 | 404 |     102.552µs |       127.0.0.1 | GET      "/ws/56f1770b6c1cb29e8338c5d25775f2fd48f13c6d9a25459e4ee46fba726810d8"
+[GIN] 2020/07/06 - 23:59:43 | 404 |      86.195µs |       127.0.0.1 | GET      "/ws/56f1770b6c1cb29e8338c5d25775f2fd48f13c6d9a25459e4ee46fba726810d8"
+[GIN] 2020/07/06 - 23:59:44 | 404 |     151.948µs |       127.0.0.1 | GET      "/ws/56f1770b6c1cb29e8338c5d25775f2fd48f13c6d9a25459e4ee46fba726810d8"
+[GIN] 2020/07/07 - 00:00:00 | 404 |      36.265µs |       127.0.0.1 | GET      "/ws/56f1770b6c1cb29e8338c5d25775f2fd48f13c6d9a25459e4ee46fba726810d8"
+[GIN] 2020/07/07 - 00:00:01 | 404 |     128.886µs |       127.0.0.1 | GET      "/ws/56f1770b6c1cb29e8338c5d25775f2fd48f13c6d9a25459e4ee46fba726810d8"
+[GIN] 2020/07/07 - 00:00:05 | 404 |      38.412µs |       127.0.0.1 | GET      "/ws/56f1770b6c1cb29e8338c5d25775f2fd48f13c6d9a25459e4ee46fba726810d8"
+[dea] starting HTTP api at 127.0.0.1:12010
+[GIN] 2020/07/07 - 00:00:09 | 410 |      44.656µs |       127.0.0.1 | GET      "/ws/56f1770b6c1cb29e8338c5d25775f2fd48f13c6d9a25459e4ee46fba726810d8"
+[GIN] 2020/07/07 - 00:00:10 | 410 |      31.204µs |       127.0.0.1 | GET      "/ws/56f1770b6c1cb29e8338c5d25775f2fd48f13c6d9a25459e4ee46fba726810d8"
+[GIN] 2020/07/07 - 00:00:11 | 410 |      33.501µs |       127.0.0.1 | GET      "/ws/56f1770b6c1cb29e8338c5d25775f2fd48f13c6d9a25459e4ee46fba726810d8"
+[GIN] 2020/07/07 - 00:00:11 | 410 |      21.632µs |       127.0.0.1 | GET      "/ws/56f1770b6c1cb29e8338c5d25775f2fd48f13c6d9a25459e4ee46fba726810d8"
+[GIN] 2020/07/07 - 00:00:12 | 410 |      34.117µs |       127.0.0.1 | GET      "/ws/56f1770b6c1cb29e8338c5d25775f2fd48f13c6d9a25459e4ee46fba726810d8"
+[GIN] 2020/07/07 - 00:00:13 | 410 |      23.494µs |       127.0.0.1 | GET      "/ws/56f1770b6c1cb29e8338c5d25775f2fd48f13c6d9a25459e4ee46fba726810d8"
+[GIN] 2020/07/07 - 00:00:14 | 410 |      21.821µs |       127.0.0.1 | GET      "/ws/56f1770b6c1cb29e8338c5d25775f2fd48f13c6d9a25459e4ee46fba726810d8"
+[GIN] 2020/07/07 - 00:00:15 | 410 |       31.48µs |       127.0.0.1 | GET      "/ws/56f1770b6c1cb29e8338c5d25775f2fd48f13c6d9a25459e4ee46fba726810d8"
+[GIN] 2020/07/07 - 00:00:16 | 410 |      23.647µs |       127.0.0.1 | GET      "/ws/56f1770b6c1cb29e8338c5d25775f2fd48f13c6d9a25459e4ee46fba726810d8"
+[GIN] 2020/07/07 - 00:00:17 | 410 |       22.41µs |       127.0.0.1 | GET      "/ws/56f1770b6c1cb29e8338c5d25775f2fd48f13c6d9a25459e4ee46fba726810d8"
+[GIN] 2020/07/07 - 00:00:18 | 410 |      26.671µs |       127.0.0.1 | GET      "/ws/56f1770b6c1cb29e8338c5d25775f2fd48f13c6d9a25459e4ee46fba726810d8"
+[GIN] 2020/07/07 - 00:00:18 | 410 |      30.149µs |       127.0.0.1 | GET      "/ws/56f1770b6c1cb29e8338c5d25775f2fd48f13c6d9a25459e4ee46fba726810d8"
+[GIN] 2020/07/07 - 00:00:34 | 410 |  131.146245ms |       127.0.0.1 | GET      "/ws/56f1770b6c1cb29e8338c5d25775f2fd48f13c6d9a25459e4ee46fba726810d8"
+[GIN] 2020/07/07 - 00:04:13 | 410 |       37.13µs |       127.0.0.1 | GET      "/ws/56f1770b6c1cb29e8338c5d25775f2fd48f13c6d9a25459e4ee46fba726810d8"
+[GIN] 2020/07/07 - 00:04:21 | 410 |      80.388µs |       127.0.0.1 | GET      "/ws/56f1770b6c1cb29e8338c5d25775f2fd48f13c6d9a25459e4ee46fba726810d8"
+[GIN] 2020/07/07 - 00:04:27 | 410 |     102.678µs |       127.0.0.1 | GET      "/ws/56f1770b6c1cb29e8338c5d25775f2fd48f13c6d9a25459e4ee46fba726810d8"
+[GIN] 2020/07/07 - 00:04:36 | 410 |     148.474µs |       127.0.0.1 | GET      "/ws/56f1770b6c1cb29e8338c5d25775f2fd48f13c6d9a25459e4ee46fba726810d8"
+[GIN] 2020/07/07 - 00:05:16 | 410 |     122.708µs |       127.0.0.1 | GET      "/ws/56f1770b6c1cb29e8338c5d25775f2fd48f13c6d9a25459e4ee46fba726810d8"
+[GIN] 2020/07/07 - 00:05:31 | 410 |      22.015µs |       127.0.0.1 | GET      "/ws/56f1770b6c1cb29e8338c5d25775f2fd48f13c6d9a25459e4ee46fba726810d8"
+[GIN] 2020/07/07 - 00:14:16 | 404 |       1.139µs |       127.0.0.1 | POST     "/start"
+[GIN] 2020/07/07 - 00:33:47 | 404 |       1.097µs |       127.0.0.1 | POST     "/start"
+[GIN] 2020/07/07 - 00:33:54 | 404 |       1.185µs |       127.0.0.1 | POST     "/start"
+[GIN] 2020/07/07 - 00:34:04 | 200 |  3.170550037s |       127.0.0.1 | POST     "/sessions"
+[GIN] 2020/07/07 - 00:34:53 | 200 |  3.679667693s |       127.0.0.1 | POST     "/sessions"
+[GIN] 2020/07/07 - 00:45:40 | 200 |  3.180350094s |       127.0.0.1 | POST     "/sessions"
+[GIN] 2020/07/07 - 00:45:42 | 410 |     105.693µs |       127.0.0.1 | GET      "/ws/56f1770b6c1cb29e8338c5d25775f2fd48f13c6d9a25459e4ee46fba726810d8"
+[GIN] 2020/07/07 - 00:45:51 | 410 |      78.188µs |       127.0.0.1 | GET      "/ws/996cf89312ab7d22a0f10fac1414aee1156f6871f1f43f1c721e1e9c274f8c45"
+[GIN] 2020/07/07 - 00:46:04 | 410 |     404.672µs |       127.0.0.1 | GET      "/sessions/996cf89312ab7d22a0f10fac1414aee1156f6871f1f43f1c721e1e9c274f8c45/ws"
+[dea] starting HTTP api at 127.0.0.1:12010
+[dea] starting HTTP api at 127.0.0.1:12010
+[GIN] 2020/07/07 - 00:56:39 | 200 |  3.272510989s |       127.0.0.1 | POST     "/sessions"
+[GIN] 2020/07/07 - 00:57:53 | 404 |         448ns |       127.0.0.1 | GET      "/sessions/d5159071c6cd92c3f09fc4ef3317ca3d502fa58d7760a3ea062e8dfddb92e5df"
+[GIN] 2020/07/07 - 00:58:02 | 200 |         751ns |       127.0.0.1 | GET      "/sessions/d5159071c6cd92c3f09fc4ef3317ca3d502fa58d7760a3ea062e8dfddb92e5df/output"
+[dea] starting HTTP api at 127.0.0.1:12010
+[GIN] 2020/07/07 - 01:01:39 | 404 |       51.05µs |       127.0.0.1 | GET      "/sessions/d5159071c6cd92c3f09fc4ef3317ca3d502fa58d7760a3ea062e8dfddb92e5df/output"
+[GIN] 2020/07/07 - 01:02:09 | 404 |       30.34µs |       127.0.0.1 | GET      "/sessions/d5159071c6cd92c3f09fc4ef3317ca3d502fa58d7760a3ea062e8dfddb92e5df/output"
+[GIN] 2020/07/07 - 01:03:46 | 404 |       58.15µs |       127.0.0.1 | GET      "/sessions/d5159071c6cd92c3f09fc4ef3317ca3d502fa58d7760a3ea062e8dfddb92e5df/output"
+[dea] starting HTTP api at 127.0.0.1:12010
+[GIN] 2020/07/07 - 01:03:52 | 404 |      51.477µs |       127.0.0.1 | GET      "/sessions/d5159071c6cd92c3f09fc4ef3317ca3d502fa58d7760a3ea062e8dfddb92e5df/output"
+[GIN] 2020/07/07 - 01:04:02 | 404 |      22.713µs |       127.0.0.1 | GET      "/sessions/d5159071c6cd92c3f09fc4ef3317ca3d502fa58d7760a3ea062e8dfddb92e5df/output"
+[GIN] 2020/07/07 - 01:04:02 | 404 |       21.67µs |       127.0.0.1 | GET      "/sessions/d5159071c6cd92c3f09fc4ef3317ca3d502fa58d7760a3ea062e8dfddb92e5df/output"
+[GIN] 2020/07/07 - 01:04:03 | 404 |      22.812µs |       127.0.0.1 | GET      "/sessions/d5159071c6cd92c3f09fc4ef3317ca3d502fa58d7760a3ea062e8dfddb92e5df/output"
+[GIN] 2020/07/07 - 01:04:04 | 404 |      22.174µs |       127.0.0.1 | GET      "/sessions/d5159071c6cd92c3f09fc4ef3317ca3d502fa58d7760a3ea062e8dfddb92e5df/output"
+[GIN] 2020/07/07 - 01:04:05 | 404 |      25.328µs |       127.0.0.1 | GET      "/sessions/d5159071c6cd92c3f09fc4ef3317ca3d502fa58d7760a3ea062e8dfddb92e5df/output"
+[GIN] 2020/07/07 - 01:04:05 | 404 |      31.434µs |       127.0.0.1 | GET      "/sessions/d5159071c6cd92c3f09fc4ef3317ca3d502fa58d7760a3ea062e8dfddb92e5df/output"
+[GIN] 2020/07/07 - 01:04:06 | 404 |      21.231µs |       127.0.0.1 | GET      "/sessions/d5159071c6cd92c3f09fc4ef3317ca3d502fa58d7760a3ea062e8dfddb92e5df/output"
+[GIN] 2020/07/07 - 01:04:07 | 404 |      22.476µs |       127.0.0.1 | GET      "/sessions/d5159071c6cd92c3f09fc4ef3317ca3d502fa58d7760a3ea062e8dfddb92e5df/output"
+[GIN] 2020/07/07 - 01:04:08 | 404 |      22.509µs |       127.0.0.1 | GET      "/sessions/d5159071c6cd92c3f09fc4ef3317ca3d502fa58d7760a3ea062e8dfddb92e5df/output"
+[GIN] 2020/07/07 - 01:04:09 | 404 |       21.49µs |       127.0.0.1 | GET      "/sessions/d5159071c6cd92c3f09fc4ef3317ca3d502fa58d7760a3ea062e8dfddb92e5df/output"
+[GIN] 2020/07/07 - 01:04:10 | 404 |      23.314µs |       127.0.0.1 | GET      "/sessions/d5159071c6cd92c3f09fc4ef3317ca3d502fa58d7760a3ea062e8dfddb92e5df/output"
+[GIN] 2020/07/07 - 01:05:40 | 404 |         519ns |       127.0.0.1 | GET      "/sessions"
+[GIN] 2020/07/07 - 01:05:42 | 404 |         528ns |       127.0.0.1 | GET      "/sessions"
+[GIN] 2020/07/07 - 01:05:43 | 404 |         516ns |       127.0.0.1 | GET      "/sessions"
+[GIN] 2020/07/07 - 01:05:44 | 404 |         464ns |       127.0.0.1 | GET      "/sessions"
+[dea] starting HTTP api at 127.0.0.1:12010
+[GIN] 2020/07/07 - 01:05:48 | 200 |      53.506µs |       127.0.0.1 | GET      "/sessions"
+[GIN] 2020/07/07 - 01:05:53 | 200 |  3.134638963s |       127.0.0.1 | POST     "/sessions"
+[GIN] 2020/07/07 - 01:05:55 | 200 |      24.941µs |       127.0.0.1 | GET      "/sessions"
