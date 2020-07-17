@@ -3,9 +3,12 @@ package dea
 import (
 	"context"
 	"io"
+	"log"
 	"os"
+	"strings"
 	"time"
 
+	"github.com/davecgh/go-spew/spew"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/mount"
@@ -17,10 +20,13 @@ import (
 type ExecParams struct {
 	PullImage *string  `json:"pull_image"`
 	Image     string   `json:"image"`
-	Cmd       []string `json:"cmd"`
+	Commands  []string `json:"commands"`
 }
 
 func (p *ContainerPool) Exec(params *ExecParams) (*Container, error) {
+	//log.Println("executing container, params:")
+	//spew.Dump(params)
+
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Hour)
 	defer cancel()
 
@@ -32,7 +38,7 @@ func (p *ContainerPool) Exec(params *ExecParams) (*Container, error) {
 	cnt := NewContainer()
 	hostConfig := &container.HostConfig{}
 
-	allow_pull := os.Getenv("INSECURE_ALLOW_PULL")
+	allow_pull := os.Getenv("ALLOW_PULL")
 	if allow_pull == "YES" {
 		if params.PullImage != nil {
 			reader, err := cli.ImagePull(ctx, *params.PullImage, types.ImagePullOptions{})
@@ -45,10 +51,11 @@ func (p *ContainerPool) Exec(params *ExecParams) (*Container, error) {
 
 	cfg := &container.Config{
 		Image: params.Image,
-		Cmd:   params.Cmd,
+		Cmd:   []string{"/bin/bash"},
+		//Cmd:   params.Cmd,
 	}
 
-	forward_agent := os.Getenv("INSECURE_FORWARD_SSH_AGENT")
+	forward_agent := os.Getenv("FORWARD_SSH_AGENT")
 	if forward_agent == "YES" {
 		sock := os.Getenv("SSH_AUTH_SOCK")
 		if sock == "" {
@@ -69,36 +76,101 @@ func (p *ContainerPool) Exec(params *ExecParams) (*Container, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to create container")
 	}
-
-	cnt.ID = resp.ID
-
-	if err := cli.ContainerStart(ctx, resp.ID, types.ContainerStartOptions{}); err != nil {
-		return nil, errors.Wrap(err, "failed to start container")
-	}
-
-	statusCh, errCh := cli.ContainerWait(ctx, resp.ID, container.WaitConditionNotRunning)
-	select {
-	case err := <-errCh:
-		if err != nil {
-			return nil, errors.Wrap(err, "container run/wait error")
-		}
-	case <-statusCh:
-	}
-
-	out, err := cli.ContainerLogs(ctx, resp.ID, types.ContainerLogsOptions{ShowStdout: true})
-	if err != nil {
-		return nil, errors.Wrap(err, "container log read error")
-	}
-
-	stdcopy.StdCopy(cnt.StdOut(), cnt.StdErr(), out)
+	id := resp.ID
+	cnt.ID = id
 
 	p.mutex.Lock()
 	p.containers[cnt.ID] = cnt
 	p.mutex.Unlock()
 
-	if forward_agent == "YES" {
+	options := types.ContainerAttachOptions{
+		Stream: true,
+		Stdin:  true,
+		Stdout: true,
+		Stderr: true,
+	}
+	log.Println("Attaching to container", id, "...")
+	hijacked, err := cli.ContainerAttach(ctx, id, options)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to attach to container")
+	}
+	defer hijacked.Close()
 
+	if err := cli.ContainerStart(ctx, resp.ID, types.ContainerStartOptions{}); err != nil {
+		return nil, errors.Wrap(err, "failed to start container")
 	}
 
+	// Copy any output to the trace
+	stdoutErrCh := make(chan error)
+	go func() {
+		_, errCopy := stdcopy.StdCopy(cnt.StdOut(), cnt.StdErr(), hijacked.Reader)
+		if errCopy != nil {
+			stdoutErrCh <- errCopy
+		}
+	}()
+
+	input := generateScript(params.Commands)
+	log.Println("Executing in container", id, "script:\n", input)
+
+	// Write the input to the container and close its STDIN to get it to finish
+	stdinErrCh := make(chan error)
+	go func() {
+		_, errCopy := io.Copy(hijacked.Conn, strings.NewReader(input))
+		_ = hijacked.CloseWrite()
+		if errCopy != nil {
+			log.Println("stdin write error", errCopy)
+			stdinErrCh <- errCopy
+		}
+	}()
+
+	statusCh, waitErrCh := cli.ContainerWait(ctx, resp.ID, container.WaitConditionNotRunning)
+
+	log.Println("waiting for container")
+
+	// Wait until either:
+	// - the job is aborted/cancelled/deadline exceeded
+	// - stdin has an error
+	// - stdout returns an error or nil, indicating the stream has ended and
+	//   the container has exited
+	select {
+	case <-ctx.Done():
+		log.Println("context done")
+		return nil, errors.New("container execution aborted")
+	case err = <-stdinErrCh:
+		log.Println("stdin error", err)
+		if err != nil {
+			return nil, errors.Wrap(err, "container stdin write error")
+		}
+	case err = <-stdoutErrCh:
+		log.Println("stdout error", err)
+		if err != nil {
+			return nil, errors.Wrap(err, "container stdout read error")
+		}
+	case err := <-waitErrCh:
+		log.Println("wait error", err)
+		if err != nil {
+			return nil, errors.Wrap(err, "container run/wait error")
+		}
+	case <-statusCh:
+		log.Println("container stopped normally")
+	}
+	spew.Dump(err)
+
+	//out, err := cli.ContainerLogs(ctx, resp.ID, types.ContainerLogsOptions{ShowStdout: true})
+	//if err != nil {
+	//return nil, errors.Wrap(err, "container log read error")
+	//}
+
+	//stdcopy.StdCopy(cnt.StdOut(), cnt.StdErr(), out)
+
+	//if forward_agent == "YES" {
+
+	//}
+
 	return cnt, nil
+}
+
+func generateScript(commands []string) string {
+	cmd := "set -eo pipefail\n" + strings.Join(commands, "\n")
+	return cmd
 }

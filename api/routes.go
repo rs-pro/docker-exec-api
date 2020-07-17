@@ -1,13 +1,16 @@
 package api
 
 import (
+	"html/template"
 	"io"
 	"log"
 	"net/http"
 	"os"
+	"strings"
 
 	"github.com/docker/docker/client"
 	"github.com/gin-gonic/gin"
+	"github.com/lithammer/dedent"
 	dea "github.com/rs-pro/docker-exec-api"
 )
 
@@ -65,6 +68,7 @@ func GetRouter() *gin.Engine {
 
 			c.JSON(http.StatusOK, container)
 		})
+
 		s.GET("", func(c *gin.Context) {
 			c.JSON(http.StatusOK, pool.GetAllContainers())
 		})
@@ -94,6 +98,33 @@ func GetRouter() *gin.Engine {
 
 			c.JSON(http.StatusOK, container.GetCommands())
 		})
+
+		if os.Getenv("STATUS_PAGE") == "YES" {
+			body := `
+					<h3>DockerExecApi Status page</h3>
+					{{range $container := .Containers}}
+					<h5>{{$container.ID}}</h5>
+					{{ range $command := $container.GetCommands }}
+					<pre><code>
+					> {{$command.Command}}
+					{{$command.GetOutput}}
+					</code></pre>
+					{{end}}
+					{{end}}
+			`
+			body = strings.TrimSpace(dedent.Dedent(body))
+			tpl := template.Must(template.New("status").Parse(body))
+			r.GET("/status", func(c *gin.Context) {
+				c.Status(http.StatusOK)
+				c.Header("Content-Type", "text/html; charset=utf-8")
+				err := tpl.Execute(c.Writer, gin.H{
+					"Containers": pool.GetAllContainers(),
+				})
+				if err != nil {
+					log.Println(err)
+				}
+			})
+		}
 
 		r.GET("/health", func(c *gin.Context) {
 			_, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())

@@ -4,12 +4,6 @@ import (
 	"sync"
 )
 
-type Command struct {
-	Command string
-	Args    []string
-	Output  []*OutputLine
-}
-
 type Container struct {
 	ID       string
 	cond     *sync.Cond

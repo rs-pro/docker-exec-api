@@ -18,6 +18,12 @@ Websocket connection is read-only and not protected by api key (but requires a r
 
 Developed for [rtrack.ru](https://rtrack.ru) as a part of deployment automation service.
 
+## Install
+
+```
+go get github.com/rs-pro/docker-exec-api
+```
+
 ## Examples:
 
 Examples use [httpie](https://httpie.org/) and [websocat](https://github.com/vi/websocat)
@@ -25,9 +31,9 @@ Examples use [httpie](https://httpie.org/) and [websocat](https://github.com/vi/
 Replace ```create-your-key``` with a better key for security.
 
 ```
-INSECURE_ALLOW_PULL=YES GIN_MODE=release LISTEN='127.0.0.1:12010' API_KEY=create-your-key docker-exec-api
+ALLOW_PULL=YES GIN_MODE=release LISTEN='127.0.0.1:12010' API_KEY=create-your-key docker-exec-api
 # from your backend
-http -f POST http://localhost:12010/sessions X-Api-Key:create-your-key image=ruby commands:='["bundle install", "cap staging deploy"]' pull_image:=true
+http POST http://localhost:12010/sessions X-Api-Key:create-your-key image=ruby commands:='["bundle install", "cap staging deploy"]' pull_image="ruby:2.7"
 # Example output:
 ```
 HTTP/1.1 200 OK
@@ -42,7 +48,7 @@ Date: Mon, 06 Jul 2020 20:39:31 GMT
 
 # from client's browser to show output:
  websocat -t "ws://localhost:12010/sessions/your-long-id/websocket" -
- http GET http://localhost:12010/sessions/your-long-id/output
+ http get http://localhost:12010/sessions/your-long-id/output
  
 ```
 

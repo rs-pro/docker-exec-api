@@ -22,12 +22,15 @@ type OutputLine struct {
 }
 
 func (c *Container) processOutput(kind LineKind, p []byte) {
-	log.Println(string(p))
+	log.Println("container output:", string(p))
 	lines := bytes.Split(p, []byte("\n"))
 	t := time.Now()
 
 	ret := make([]*OutputLine, 0)
 	for _, line := range lines {
+		if len(line) == 0 {
+			continue
+		}
 		ret = append(ret, &OutputLine{
 			Kind:    kind,
 			Content: line,
