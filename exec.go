@@ -28,7 +28,8 @@ func (p *ContainerPool) Exec(params *ExecParams) (*Container, error) {
 	//spew.Dump(params)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Hour)
-	defer cancel()
+	spew.Dump(cancel)
+	//defer cancel()
 
 	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
 	if err != nil {
@@ -53,6 +54,11 @@ func (p *ContainerPool) Exec(params *ExecParams) (*Container, error) {
 		Image: params.Image,
 		Cmd:   []string{"/bin/bash"},
 		//Cmd:   params.Cmd,
+		AttachStdin:  true,
+		AttachStdout: true,
+		AttachStderr: true,
+		//Tty:          true,
+		OpenStdin: true,
 	}
 
 	forward_agent := os.Getenv("FORWARD_SSH_AGENT")
@@ -116,10 +122,14 @@ func (p *ContainerPool) Exec(params *ExecParams) (*Container, error) {
 	stdinErrCh := make(chan error)
 	go func() {
 		_, errCopy := io.Copy(hijacked.Conn, strings.NewReader(input))
-		_ = hijacked.CloseWrite()
 		if errCopy != nil {
 			log.Println("stdin write error", errCopy)
 			stdinErrCh <- errCopy
+		}
+		errClose := hijacked.CloseWrite()
+		if errClose != nil {
+			log.Println("stdin CloseWrite error", errCopy)
+			stdinErrCh <- errClose
 		}
 	}()
 
@@ -132,29 +142,34 @@ func (p *ContainerPool) Exec(params *ExecParams) (*Container, error) {
 	// - stdin has an error
 	// - stdout returns an error or nil, indicating the stream has ended and
 	//   the container has exited
-	select {
-	case <-ctx.Done():
-		log.Println("context done")
-		return nil, errors.New("container execution aborted")
-	case err = <-stdinErrCh:
-		log.Println("stdin error", err)
-		if err != nil {
-			return nil, errors.Wrap(err, "container stdin write error")
+	for {
+		select {
+		case <-ctx.Done():
+			log.Println("context done")
+			return nil, errors.New("container execution aborted")
+		case err = <-stdinErrCh:
+			log.Println("stdin error", err)
+			if err != nil {
+				return nil, errors.Wrap(err, "container stdin write error")
+			}
+		case err = <-stdoutErrCh:
+			log.Println("stdout error", err)
+			if err != nil {
+				return nil, errors.Wrap(err, "container stdout read error")
+			}
+		case err := <-waitErrCh:
+			log.Println("wait error", err)
+			if err != nil {
+				return nil, errors.Wrap(err, "container run/wait error")
+			}
+		case <-statusCh:
+			log.Println("container stopped normally")
 		}
-	case err = <-stdoutErrCh:
-		log.Println("stdout error", err)
+		spew.Dump(err)
 		if err != nil {
-			return nil, errors.Wrap(err, "container stdout read error")
+			break
 		}
-	case err := <-waitErrCh:
-		log.Println("wait error", err)
-		if err != nil {
-			return nil, errors.Wrap(err, "container run/wait error")
-		}
-	case <-statusCh:
-		log.Println("container stopped normally")
 	}
-	spew.Dump(err)
 
 	//out, err := cli.ContainerLogs(ctx, resp.ID, types.ContainerLogsOptions{ShowStdout: true})
 	//if err != nil {
