@@ -21,6 +21,7 @@ type ExecParams struct {
 	PullImage *string  `json:"pull_image"`
 	Image     string   `json:"image"`
 	Commands  []string `json:"commands"`
+	Shell     []string `json:"shell"`
 }
 
 func (p *ContainerPool) Exec(params *ExecParams) (*Container, error) {
@@ -50,9 +51,13 @@ func (p *ContainerPool) Exec(params *ExecParams) (*Container, error) {
 		}
 	}
 
+	if len(params.Shell) == 0 {
+		params.Shell = []string{"/bin/bash"}
+	}
+
 	cfg := &container.Config{
 		Image: params.Image,
-		Cmd:   []string{"/bin/bash"},
+		Cmd:   params.Shell,
 		//Cmd:   params.Cmd,
 		AttachStdin:  true,
 		AttachStdout: true,
@@ -95,6 +100,11 @@ func (p *ContainerPool) Exec(params *ExecParams) (*Container, error) {
 		Stdout: true,
 		Stderr: true,
 	}
+
+	if err := cli.ContainerStart(ctx, resp.ID, types.ContainerStartOptions{}); err != nil {
+		return nil, errors.Wrap(err, "failed to start container")
+	}
+
 	log.Println("Attaching to container", id, "...")
 	hijacked, err := cli.ContainerAttach(ctx, id, options)
 	if err != nil {
@@ -102,15 +112,14 @@ func (p *ContainerPool) Exec(params *ExecParams) (*Container, error) {
 	}
 	defer hijacked.Close()
 
-	if err := cli.ContainerStart(ctx, resp.ID, types.ContainerStartOptions{}); err != nil {
-		return nil, errors.Wrap(err, "failed to start container")
-	}
-
 	// Copy any output to the trace
 	stdoutErrCh := make(chan error)
 	go func() {
 		_, errCopy := stdcopy.StdCopy(cnt.StdOut(), cnt.StdErr(), hijacked.Reader)
 		if errCopy != nil {
+			if err != nil {
+				log.Println("container attach stdcopy error", err)
+			}
 			stdoutErrCh <- errCopy
 		}
 	}()
@@ -171,12 +180,15 @@ func (p *ContainerPool) Exec(params *ExecParams) (*Container, error) {
 		}
 	}
 
-	//out, err := cli.ContainerLogs(ctx, resp.ID, types.ContainerLogsOptions{ShowStdout: true})
-	//if err != nil {
-	//return nil, errors.Wrap(err, "container log read error")
-	//}
+	out, err := cli.ContainerLogs(ctx, resp.ID, types.ContainerLogsOptions{ShowStdout: true})
+	if err != nil {
+		return nil, errors.Wrap(err, "container log read error")
+	}
 
-	//stdcopy.StdCopy(cnt.StdOut(), cnt.StdErr(), out)
+	_, err = stdcopy.StdCopy(cnt.StdOut(), cnt.StdErr(), out)
+	if err != nil {
+		return nil, errors.Wrap(err, "container log stdcopy error")
+	}
 
 	//if forward_agent == "YES" {
 

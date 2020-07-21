@@ -31,7 +31,7 @@ Examples use [httpie](https://httpie.org/) and [websocat](https://github.com/vi/
 Replace ```create-your-key``` with a better key for security.
 
 ```
-ALLOW_PULL=YES GIN_MODE=release LISTEN='127.0.0.1:12010' API_KEY=create-your-key docker-exec-api
+FORWARD_SSH_AGENT=YES STATUS_PAGE=YES ALLOW_PULL=YES GIN_MODE=release LISTEN='127.0.0.1:12010' API_KEY=create-your-key docker-exec-api
 # from your backend
 http POST http://localhost:12010/sessions X-Api-Key:create-your-key image=ruby commands:='["bundle install", "cap staging deploy"]' pull_image="ruby:2.7"
 # Example output:
