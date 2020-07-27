@@ -22,8 +22,16 @@ type OutputLine struct {
 }
 
 func (c *Container) processOutput(kind LineKind, p []byte) {
+	c.cond.L.Lock()
 	log.Println("container output:", string(p))
-	lines := bytes.Split(p, []byte("\n"))
+	c.buffers[kind].Write(p)
+	lines := bytes.Split(c.buffers[kind].Bytes(), []byte("\n"))
+	if len(lines) > 1 {
+		c.buffers[kind] = bytes.NewBuffer([]byte{})
+	} else {
+		c.cond.L.Unlock()
+		return
+	}
 	t := time.Now()
 
 	ret := make([]*OutputLine, 0)
@@ -38,15 +46,14 @@ func (c *Container) processOutput(kind LineKind, p []byte) {
 		})
 	}
 	c.appendLog(ret)
+	c.cond.L.Unlock()
 }
 
 func (c *Container) appendLog(lines []*OutputLine) {
-	c.cond.L.Lock()
 	cmd := c.commands[len(c.commands)-1]
 	for _, line := range lines {
 		cmd.Output = append(cmd.Output, line)
 	}
-	c.cond.L.Unlock()
 	c.cond.Broadcast()
 }
 

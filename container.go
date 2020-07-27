@@ -1,6 +1,7 @@
 package dea
 
 import (
+	"bytes"
 	"sync"
 )
 
@@ -8,6 +9,7 @@ type Container struct {
 	ID       string
 	cond     *sync.Cond
 	commands []*Command
+	buffers  map[LineKind]*bytes.Buffer
 }
 
 func NewContainer() *Container {
@@ -15,6 +17,10 @@ func NewContainer() *Container {
 		cond: sync.NewCond(&sync.Mutex{}),
 		commands: []*Command{
 			{Command: "startup"},
+		},
+		buffers: map[LineKind]*bytes.Buffer{
+			StdOut: bytes.NewBuffer([]byte{}),
+			StdErr: bytes.NewBuffer([]byte{}),
 		},
 	}
 

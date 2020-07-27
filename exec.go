@@ -62,8 +62,8 @@ func (p *ContainerPool) Exec(params *ExecParams) (*Container, error) {
 		AttachStdin:  true,
 		AttachStdout: true,
 		AttachStderr: true,
-		//Tty:          true,
-		OpenStdin: true,
+		Tty:          true,
+		OpenStdin:    true,
 	}
 
 	forward_agent := os.Getenv("FORWARD_SSH_AGENT")
@@ -125,7 +125,8 @@ func (p *ContainerPool) Exec(params *ExecParams) (*Container, error) {
 	}()
 
 	input := generateScript(params.Commands)
-	log.Println("Executing in container", id, "script:\n", input)
+	log.Println("Executing in container", id, "script:")
+	log.Println(input)
 
 	// Write the input to the container and close its STDIN to get it to finish
 	stdinErrCh := make(chan error)
@@ -180,15 +181,15 @@ func (p *ContainerPool) Exec(params *ExecParams) (*Container, error) {
 		}
 	}
 
-	out, err := cli.ContainerLogs(ctx, resp.ID, types.ContainerLogsOptions{ShowStdout: true})
-	if err != nil {
-		return nil, errors.Wrap(err, "container log read error")
-	}
+	//out, err := cli.ContainerLogs(ctx, resp.ID, types.ContainerLogsOptions{ShowStdout: true})
+	//if err != nil {
+	//return nil, errors.Wrap(err, "container log read error")
+	//}
 
-	_, err = stdcopy.StdCopy(cnt.StdOut(), cnt.StdErr(), out)
-	if err != nil {
-		return nil, errors.Wrap(err, "container log stdcopy error")
-	}
+	//_, err = stdcopy.StdCopy(cnt.StdOut(), cnt.StdErr(), out)
+	//if err != nil {
+	//return nil, errors.Wrap(err, "container log stdcopy error")
+	//}
 
 	//if forward_agent == "YES" {
 
@@ -198,6 +199,6 @@ func (p *ContainerPool) Exec(params *ExecParams) (*Container, error) {
 }
 
 func generateScript(commands []string) string {
-	cmd := "set -eo pipefail\n" + strings.Join(commands, "\n")
+	cmd := "set -eo pipefail\nmkdir ~/.ssh\nprintf 'Host github.com\\n  StrictHostKeyChecking no' > ~/.ssh/config\n" + strings.Join(commands, "\n")
 	return cmd
 }
