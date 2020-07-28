@@ -62,8 +62,8 @@ func (p *ContainerPool) Exec(params *ExecParams) (*Container, error) {
 		AttachStdin:  true,
 		AttachStdout: true,
 		AttachStderr: true,
-		Tty:          true,
-		OpenStdin:    true,
+		//Tty:          true,
+		OpenStdin: true,
 	}
 
 	forward_agent := os.Getenv("FORWARD_SSH_AGENT")
@@ -95,6 +95,7 @@ func (p *ContainerPool) Exec(params *ExecParams) (*Container, error) {
 	p.mutex.Unlock()
 
 	options := types.ContainerAttachOptions{
+		Logs:   true,
 		Stream: true,
 		Stdin:  true,
 		Stdout: true,
@@ -198,7 +199,18 @@ func (p *ContainerPool) Exec(params *ExecParams) (*Container, error) {
 	return cnt, nil
 }
 
+const HOST_KEY = "rscz.ru,89.108.106.104 ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBF/+JpSBhQOlTNg4xprtpXtl/OSfnXPHJMyNkjmtKm1CpCFRxoyZYjRexyPrEK7h+QJhvwiZ/XApjCYDkcTZI5s="
+
 func generateScript(commands []string) string {
-	cmd := "set -eo pipefail\nmkdir ~/.ssh\nprintf 'Host github.com\\n  StrictHostKeyChecking no' > ~/.ssh/config\n" + strings.Join(commands, "\n")
+	systemCommands := []string{
+		"set -eo pipefail",
+		"mkdir ~/.ssh",
+		"echo '" + HOST_KEY + "' > ~/.ssh/known_hosts",
+		"cat ~/.ssh/known_hosts",
+		"ssh-add -L",
+		"mkdir /data",
+		"cd /data",
+	}
+	cmd := strings.Join(systemCommands, "\n") + "\n" + strings.Join(commands, "\n")
 	return cmd
 }
