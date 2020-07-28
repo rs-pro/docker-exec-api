@@ -1,0 +1,8 @@
+forward_ssh_agent: true
+status_page: true
+allow_pull: true
+gin_mode: release
+listen: 127.0.0.1:12010
+api_key: create-your-key
+ssh_host_keys:
+  - "rscz.ru,89.108.106.104 ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBF/+JpSBhQOlTNg4xprtpXtl/OSfnXPHJMyNkjmtKm1CpCFRxoyZYjRexyPrEK7h+QJhvwiZ/XApjCYDkcTZI5s="

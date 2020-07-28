@@ -12,9 +12,16 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/lithammer/dedent"
 	dea "github.com/rs-pro/docker-exec-api"
+	"github.com/rs-pro/docker-exec-api/config"
 )
 
 var r *gin.Engine
+
+func init() {
+	if config.Config.GinMode == "release" {
+		gin.SetMode(gin.ReleaseMode)
+	}
+}
 
 func GetRouter() *gin.Engine {
 	if r == nil {
@@ -99,7 +106,7 @@ func GetRouter() *gin.Engine {
 			c.JSON(http.StatusOK, container.GetCommands())
 		})
 
-		if os.Getenv("STATUS_PAGE") == "YES" {
+		if config.Config.StatusPage {
 			body := `
 					<h3>DockerExecApi Status page</h3>
 					{{range $container := .Containers}}

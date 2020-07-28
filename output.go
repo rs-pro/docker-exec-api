@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"io"
 	"log"
+	"strings"
 	"time"
 )
 
@@ -23,7 +24,7 @@ type OutputLine struct {
 
 func (c *Container) processOutput(kind LineKind, p []byte) {
 	c.cond.L.Lock()
-	log.Println("container output:", string(p))
+	log.Println(">", strings.TrimSpace(string(p)))
 	c.buffers[kind].Write(p)
 	lines := bytes.Split(c.buffers[kind].Bytes(), []byte("\n"))
 	if len(lines) > 1 {

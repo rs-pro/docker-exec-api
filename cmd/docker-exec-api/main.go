@@ -3,14 +3,14 @@ package main
 import (
 	"fmt"
 	"log"
-	"os"
 
 	"github.com/gin-gonic/gin"
 	"github.com/rs-pro/docker-exec-api/api"
+	"github.com/rs-pro/docker-exec-api/config"
 )
 
 func main() {
-	listen := os.Getenv("LISTEN")
+	listen := config.Config.Listen
 	if listen == "" {
 		listen = "127.0.0.1:12010"
 	}

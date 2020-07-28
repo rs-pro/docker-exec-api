@@ -15,6 +15,7 @@ import (
 	"github.com/docker/docker/client"
 	"github.com/docker/docker/pkg/stdcopy"
 	"github.com/pkg/errors"
+	"github.com/rs-pro/docker-exec-api/config"
 )
 
 type ExecParams struct {
@@ -40,8 +41,7 @@ func (p *ContainerPool) Exec(params *ExecParams) (*Container, error) {
 	cnt := NewContainer()
 	hostConfig := &container.HostConfig{}
 
-	allow_pull := os.Getenv("ALLOW_PULL")
-	if allow_pull == "YES" {
+	if config.Config.AllowPull {
 		if params.PullImage != nil {
 			reader, err := cli.ImagePull(ctx, *params.PullImage, types.ImagePullOptions{})
 			if err != nil {
@@ -59,15 +59,14 @@ func (p *ContainerPool) Exec(params *ExecParams) (*Container, error) {
 		Image: params.Image,
 		Cmd:   params.Shell,
 		//Cmd:   params.Cmd,
-		AttachStdin:  true,
-		AttachStdout: true,
-		AttachStderr: true,
+		//AttachStdin:  true,
+		//AttachStdout: true,
+		//AttachStderr: true,
 		//Tty:          true,
 		OpenStdin: true,
 	}
 
-	forward_agent := os.Getenv("FORWARD_SSH_AGENT")
-	if forward_agent == "YES" {
+	if config.Config.ForwardSSHAgent {
 		sock := os.Getenv("SSH_AUTH_SOCK")
 		if sock == "" {
 			panic("SSH Agent Forward enabled, but SSH_AUTH_SOCK is not present in Env")
@@ -94,19 +93,15 @@ func (p *ContainerPool) Exec(params *ExecParams) (*Container, error) {
 	p.containers[cnt.ID] = cnt
 	p.mutex.Unlock()
 
+	log.Println("Attaching to container", id, "...")
+
 	options := types.ContainerAttachOptions{
-		Logs:   true,
+		//Logs:   true,
 		Stream: true,
 		Stdin:  true,
 		Stdout: true,
 		Stderr: true,
 	}
-
-	if err := cli.ContainerStart(ctx, resp.ID, types.ContainerStartOptions{}); err != nil {
-		return nil, errors.Wrap(err, "failed to start container")
-	}
-
-	log.Println("Attaching to container", id, "...")
 	hijacked, err := cli.ContainerAttach(ctx, id, options)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to attach to container")
@@ -114,16 +109,20 @@ func (p *ContainerPool) Exec(params *ExecParams) (*Container, error) {
 	defer hijacked.Close()
 
 	// Copy any output to the trace
-	stdoutErrCh := make(chan error)
-	go func() {
-		_, errCopy := stdcopy.StdCopy(cnt.StdOut(), cnt.StdErr(), hijacked.Reader)
-		if errCopy != nil {
-			if err != nil {
-				log.Println("container attach stdcopy error", err)
-			}
-			stdoutErrCh <- errCopy
-		}
-	}()
+	//stdoutErrCh := make(chan error)
+	//go func() {
+	//_, errCopy := stdcopy.StdCopy(cnt.StdOut(), cnt.StdErr(), hijacked.Reader)
+	//if errCopy != nil {
+	//log.Println("container attach stdcopy error", errCopy)
+	//stdoutErrCh <- errCopy
+	//} else {
+	//log.Println("container attach stdcopy returned without error")
+	//}
+	//}()
+
+	if err := cli.ContainerStart(ctx, resp.ID, types.ContainerStartOptions{}); err != nil {
+		return nil, errors.Wrap(err, "failed to start container")
+	}
 
 	input := generateScript(params.Commands)
 	log.Println("Executing in container", id, "script:")
@@ -148,6 +147,25 @@ func (p *ContainerPool) Exec(params *ExecParams) (*Container, error) {
 
 	log.Println("waiting for container")
 
+	out, err := cli.ContainerLogs(ctx, resp.ID, types.ContainerLogsOptions{
+		ShowStdout: true,
+		ShowStderr: true,
+		Follow:     true,
+		Details:    true,
+	})
+	if err != nil {
+		return nil, errors.Wrap(err, "container log read error")
+	}
+
+	logsErrCh := make(chan error)
+	go func() {
+		_, err = stdcopy.StdCopy(cnt.StdOut(), cnt.StdErr(), out)
+		if err != nil {
+			log.Println("logs stdcopy err")
+			logsErrCh <- err
+		}
+	}()
+
 	// Wait until either:
 	// - the job is aborted/cancelled/deadline exceeded
 	// - stdin has an error
@@ -163,7 +181,7 @@ func (p *ContainerPool) Exec(params *ExecParams) (*Container, error) {
 			if err != nil {
 				return nil, errors.Wrap(err, "container stdin write error")
 			}
-		case err = <-stdoutErrCh:
+		case err = <-logsErrCh:
 			log.Println("stdout error", err)
 			if err != nil {
 				return nil, errors.Wrap(err, "container stdout read error")
@@ -182,35 +200,23 @@ func (p *ContainerPool) Exec(params *ExecParams) (*Container, error) {
 		}
 	}
 
-	//out, err := cli.ContainerLogs(ctx, resp.ID, types.ContainerLogsOptions{ShowStdout: true})
-	//if err != nil {
-	//return nil, errors.Wrap(err, "container log read error")
-	//}
-
-	//_, err = stdcopy.StdCopy(cnt.StdOut(), cnt.StdErr(), out)
-	//if err != nil {
-	//return nil, errors.Wrap(err, "container log stdcopy error")
-	//}
-
-	//if forward_agent == "YES" {
-
-	//}
-
 	return cnt, nil
 }
-
-const HOST_KEY = "rscz.ru,89.108.106.104 ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBF/+JpSBhQOlTNg4xprtpXtl/OSfnXPHJMyNkjmtKm1CpCFRxoyZYjRexyPrEK7h+QJhvwiZ/XApjCYDkcTZI5s="
 
 func generateScript(commands []string) string {
 	systemCommands := []string{
 		"set -eo pipefail",
 		"mkdir ~/.ssh",
-		"echo '" + HOST_KEY + "' > ~/.ssh/known_hosts",
+	}
+	for _, key := range config.Config.SSHHostKeys {
+		systemCommands = append(systemCommands, "echo '"+key+"' > ~/.ssh/known_hosts")
+	}
+	systemCommands = append(systemCommands,
 		"cat ~/.ssh/known_hosts",
 		"ssh-add -L",
 		"mkdir /data",
 		"cd /data",
-	}
+	)
 	cmd := strings.Join(systemCommands, "\n") + "\n" + strings.Join(commands, "\n")
 	return cmd
 }

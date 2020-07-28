@@ -9,6 +9,7 @@ require (
 	github.com/docker/docker v1.4.2-0.20191101170500-ac7306503d23
 	github.com/fsouza/go-dockerclient v1.6.5 // indirect
 	github.com/gin-gonic/gin v1.6.3
+	github.com/go-yaml/yaml v2.1.0+incompatible
 	github.com/gobwas/httphead v0.0.0-20180130184737-2c6c146eadee // indirect
 	github.com/gobwas/pool v0.2.1 // indirect
 	github.com/gobwas/ws v1.0.3
