@@ -11,9 +11,11 @@ type ConfigData struct {
 	SSHHostKeys     []string `yaml:"ssh_host_keys"`
 	StatusPage      bool     `yaml:"status_page"`
 	AllowPull       bool     `yaml:"allow_pull"`
+	AllowVolumes    bool     `yaml:"allow_volumes"`
 	GinMode         string   `yaml:"gin_mode"`
 	Listen          string   `yaml:"listen"`
 	ApiKey          string   `yaml:"api_key"`
+	Timeout         int      `yaml:"timeout"`
 }
 
 var Config ConfigData

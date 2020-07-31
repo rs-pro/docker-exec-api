@@ -14,7 +14,7 @@ Includes support passing SSH agent through to the container.
 
 Not designed to execute untrusted user-provided commands.
 
-Websocket connection is read-only and not protected by api key (but requires a random docker id) by design.
+Websocket connection is read-only and not protected by api key (but requires a client to know a random docker id) by design so it can be served directly to end user.
 
 Developed for [rtrack.ru](https://rtrack.ru) as a part of deployment automation service.
 
@@ -34,9 +34,9 @@ Replace ```create-your-key``` with a better key for security.
 # create config.yml (see example in this repo)
 docker-exec-api
 # from your backend
-http POST http://localhost:12010/sessions X-Api-Key:create-your-key image=ruby commands:='["bundle install", "cap staging deploy"]' pull_image="ruby:2.7"
+http POST http://localhost:12010/sessions X-Api-Key:create-your-key image=ruby:2.7 commands:='["git -C app pull || git clone git@rscz.ru:rocket-science/piudelcibo.git app", "cd app", "gem install bundler:1.17.2", "bundle install", "cap staging deploy"]' volumes:='[{"piudelcibo_data": "/data"]' pull_image="ruby:2.7"
 # Example output:
-```
+
 HTTP/1.1 200 OK
 Content-Length: 73
 Content-Type: application/json; charset=utf-8
@@ -45,10 +45,10 @@ Date: Mon, 06 Jul 2020 20:39:31 GMT
 {
     "ID": "your-long-id"
 }
-```
 
-# from client's browser to show output:
+# from browser to show output:
  websocat -t "ws://localhost:12010/sessions/your-long-id/websocket" -
+# or
  http get http://localhost:12010/sessions/your-long-id/output
  
 ```

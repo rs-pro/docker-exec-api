@@ -5,13 +5,13 @@ import (
 	"io"
 	"log"
 	"os"
-	"strings"
 	"time"
 
 	"github.com/davecgh/go-spew/spew"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/mount"
+	"github.com/docker/docker/api/types/volume"
 	"github.com/docker/docker/client"
 	"github.com/docker/docker/pkg/stdcopy"
 	"github.com/pkg/errors"
@@ -19,19 +19,16 @@ import (
 )
 
 type ExecParams struct {
-	PullImage *string  `json:"pull_image"`
-	Image     string   `json:"image"`
-	Commands  []string `json:"commands"`
-	Shell     []string `json:"shell"`
+	PullImage *string           `json:"pull_image"`
+	Image     string            `json:"image"`
+	Commands  []string          `json:"commands"`
+	Shell     []string          `json:"shell"`
+	Volumes   map[string]string `json:"volumes"`
 }
 
 func (p *ContainerPool) Exec(params *ExecParams) (*Container, error) {
-	//log.Println("executing container, params:")
-	//spew.Dump(params)
-
-	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Hour)
-	spew.Dump(cancel)
-	//defer cancel()
+	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(config.Config.Timeout)*time.Second)
+	defer cancel()
 
 	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
 	if err != nil {
@@ -39,7 +36,9 @@ func (p *ContainerPool) Exec(params *ExecParams) (*Container, error) {
 	}
 
 	cnt := NewContainer()
-	hostConfig := &container.HostConfig{}
+	hostConfig := &container.HostConfig{
+		Mounts: []mount.Mount{},
+	}
 
 	if config.Config.AllowPull {
 		if params.PullImage != nil {
@@ -69,16 +68,38 @@ func (p *ContainerPool) Exec(params *ExecParams) (*Container, error) {
 	if config.Config.ForwardSSHAgent {
 		sock := os.Getenv("SSH_AUTH_SOCK")
 		if sock == "" {
-			panic("SSH Agent Forward enabled, but SSH_AUTH_SOCK is not present in Env")
+			return nil, errors.New("SSH Agent Forward enabled, but SSH_AUTH_SOCK is not present in Env (you need to start ssh agent)")
 		}
 		cfg.Env = []string{"SSH_AUTH_SOCK=/ssh-agent"}
 
-		hostConfig.Mounts = []mount.Mount{
-			{
-				Type:   mount.TypeBind,
-				Source: sock,
-				Target: "/ssh-agent",
-			},
+		hostConfig.Mounts = append(hostConfig.Mounts, mount.Mount{
+			Type:   mount.TypeBind,
+			Source: sock,
+			Target: "/ssh-agent",
+		})
+	}
+
+	if len(params.Volumes) > 0 {
+		if !config.Config.AllowVolumes {
+			return nil, errors.New("Volumes are disabled. Enable with allow_volumes: true in config.yml")
+		}
+		for volumeName, volumePath := range params.Volumes {
+			v, err := cli.VolumeInspect(ctx, volumeName)
+			if err != nil {
+				log.Println("volume inspect error", err, "attempt to create volume", volumeName)
+				v, err = cli.VolumeCreate(ctx, volume.VolumeCreateBody{
+					Driver: "local",
+					Name:   volumeName,
+				})
+				if err != nil {
+					return nil, errors.Wrap(err, "failed to create volume")
+				}
+			}
+			hostConfig.Mounts = append(hostConfig.Mounts, mount.Mount{
+				Type:   mount.TypeVolume,
+				Source: v.Name,
+				Target: volumePath,
+			})
 		}
 	}
 
@@ -96,6 +117,7 @@ func (p *ContainerPool) Exec(params *ExecParams) (*Container, error) {
 	log.Println("Attaching to container", id, "...")
 
 	options := types.ContainerAttachOptions{
+		// TODO - no logs are returned from attach ? should work but doesn't
 		//Logs:   true,
 		Stream: true,
 		Stdin:  true,
@@ -124,21 +146,34 @@ func (p *ContainerPool) Exec(params *ExecParams) (*Container, error) {
 		return nil, errors.Wrap(err, "failed to start container")
 	}
 
-	input := generateScript(params.Commands)
-	log.Println("Executing in container", id, "script:")
-	log.Println(input)
+	commands := generateScript(params.Commands)
 
 	// Write the input to the container and close its STDIN to get it to finish
 	stdinErrCh := make(chan error)
 	go func() {
-		_, errCopy := io.Copy(hijacked.Conn, strings.NewReader(input))
-		if errCopy != nil {
-			log.Println("stdin write error", errCopy)
-			stdinErrCh <- errCopy
+		for _, cmd := range commands {
+			cnt.StartCommand(cmd)
+
+			cnt.Cond.L.Lock()
+			n, errWrite := hijacked.Conn.Write([]byte(cmd + "\n"))
+			log.Println("written command: ", cmd, " bytes:", n, "error:", err)
+			if errWrite != nil {
+				log.Println("stdin write error", errWrite)
+				stdinErrCh <- errWrite
+			} else {
+				cnt.Cond.Broadcast()
+			}
+			cnt.Cond.L.Unlock()
 		}
+
+		//_, errCopy := io.Copy(hijacked.Conn, strings.NewReader(input))
+		//if errCopy != nil {
+		//log.Println("stdin write error", errCopy)
+		//stdinErrCh <- errCopy
+		//}
 		errClose := hijacked.CloseWrite()
 		if errClose != nil {
-			log.Println("stdin CloseWrite error", errCopy)
+			log.Println("stdin CloseWrite error", errClose)
 			stdinErrCh <- errClose
 		}
 	}()
@@ -159,10 +194,10 @@ func (p *ContainerPool) Exec(params *ExecParams) (*Container, error) {
 
 	logsErrCh := make(chan error)
 	go func() {
-		_, err = stdcopy.StdCopy(cnt.StdOut(), cnt.StdErr(), out)
-		if err != nil {
+		_, errLogs := stdcopy.StdCopy(cnt.StdOut(), cnt.StdErr(), out)
+		if errLogs != nil {
 			log.Println("logs stdcopy err")
-			logsErrCh <- err
+			logsErrCh <- errLogs
 		}
 	}()
 
@@ -199,24 +234,30 @@ func (p *ContainerPool) Exec(params *ExecParams) (*Container, error) {
 			break
 		}
 	}
+	cnt.Stopped = true
 
 	return cnt, nil
 }
 
-func generateScript(commands []string) string {
+func generateScript(commands []string) []string {
 	systemCommands := []string{
 		"set -eo pipefail",
-		"mkdir ~/.ssh",
 	}
-	for _, key := range config.Config.SSHHostKeys {
-		systemCommands = append(systemCommands, "echo '"+key+"' > ~/.ssh/known_hosts")
+	if config.Config.ForwardSSHAgent {
+		systemCommands = append(systemCommands, "mkdir ~/.ssh")
+		for _, key := range config.Config.SSHHostKeys {
+			systemCommands = append(systemCommands, "echo '"+key+"' > ~/.ssh/known_hosts")
+		}
 	}
-	systemCommands = append(systemCommands,
-		"cat ~/.ssh/known_hosts",
-		"ssh-add -L",
-		"mkdir /data",
-		"cd /data",
-	)
-	cmd := strings.Join(systemCommands, "\n") + "\n" + strings.Join(commands, "\n")
-	return cmd
+	//systemCommands = append(systemCommands,
+	//"cat ~/.ssh/known_hosts",
+	//"ssh-add -L",
+	//"mkdir /data",
+	//"cd /data",
+	//)
+
+	systemCommands = append(systemCommands, commands...)
+	return systemCommands
+	//cmd := strings.Join(systemCommands, "\n") + "\n" + strings.Join(commands, "\n")
+	//return cmd
 }

@@ -2,12 +2,15 @@ package dea
 
 import (
 	"bytes"
+	"time"
 )
 
 type Command struct {
-	Command string
-	Args    []string
-	Output  []*OutputLine
+	Command   string        `json:"command"`
+	Args      []string      `json:"args"`
+	Output    []*OutputLine `json:"-"`
+	StartedAt *time.Time    `json:"started_at"`
+	EndedAt   *time.Time    `json:"ended_at"`
 }
 
 func (c *Command) GetOutput() string {

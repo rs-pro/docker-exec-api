@@ -17,20 +17,20 @@ const (
 )
 
 type OutputLine struct {
-	Kind    LineKind
-	Content []byte
-	Time    time.Time
+	Kind    LineKind  `json:"kind"`
+	Content []byte    `json:"content"`
+	Time    time.Time `json:"time"`
 }
 
 func (c *Container) processOutput(kind LineKind, p []byte) {
-	c.cond.L.Lock()
+	c.Cond.L.Lock()
 	log.Println(">", strings.TrimSpace(string(p)))
 	c.buffers[kind].Write(p)
 	lines := bytes.Split(c.buffers[kind].Bytes(), []byte("\n"))
 	if len(lines) > 1 {
 		c.buffers[kind] = bytes.NewBuffer([]byte{})
 	} else {
-		c.cond.L.Unlock()
+		c.Cond.L.Unlock()
 		return
 	}
 	t := time.Now()
@@ -47,7 +47,8 @@ func (c *Container) processOutput(kind LineKind, p []byte) {
 		})
 	}
 	c.appendLog(ret)
-	c.cond.L.Unlock()
+	c.Cond.Broadcast()
+	c.Cond.L.Unlock()
 }
 
 func (c *Container) appendLog(lines []*OutputLine) {
@@ -55,7 +56,6 @@ func (c *Container) appendLog(lines []*OutputLine) {
 	for _, line := range lines {
 		cmd.Output = append(cmd.Output, line)
 	}
-	c.cond.Broadcast()
 }
 
 type Writer struct {
