@@ -19,7 +19,20 @@ type WsMessage struct {
 	Done    bool            `json:"done"`
 }
 
+type WsMessageJson struct {
+	Kind    string          `json:"kind"`
+	Command string    `json:"command"`
+	Line     `json:"line"`
+	Done    bool            `json:"done"`
+}
+
 func (m *WsMessage) ToJSON() []byte {
+	jm := WsMessageJson{
+		Kind: m.Kind
+		Command: 
+		Line    *dea.OutputLine `json:"line"`
+		Done    bool            `json:"done"`
+	}
 	b, err := json.Marshal(m)
 	if err != nil {
 		log.Println("json marshal error", err)
@@ -71,7 +84,6 @@ func ConnectToContainer(c *gin.Context, ct *dea.Container) {
 			ct.Cond.Wait()
 
 			// Get a lock on Cond to ensure messages are read out and processed correctly
-			ct.Cond.L.Lock()
 			var messages []WsMessage
 			messages, cursorCommand, cursorLine = GetMessagesToSend(ct, cursorCommand, cursorLine)
 			ct.Cond.L.Unlock()
@@ -79,6 +91,7 @@ func ConnectToContainer(c *gin.Context, ct *dea.Container) {
 			// Send messages while NOT holding a lock on cond, or it will lag with multiple clients
 			for _, message := range messages {
 				b, err := json.Marshal(message)
+				log.Println("sending message", string(b))
 				if err != nil {
 					log.Println("error in message json marshal", err)
 					continue

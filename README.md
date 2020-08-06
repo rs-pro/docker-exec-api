@@ -26,8 +26,12 @@ go get github.com/rs-pro/docker-exec-api
 
 ## Examples:
 
-Examples use [httpie](https://httpie.org/) and [websocat](https://github.com/vi/websocat)
+Examples use [httpie](https://httpie.org/) and [wsd](https://github.com/alexanderGugel/wsd)
 
+install it:
+```
+go get github.com/alexanderGugel/wsd
+```
 Replace ```create-your-key``` with a better key for security.
 
 ```
@@ -47,7 +51,10 @@ Date: Mon, 06 Jul 2020 20:39:31 GMT
 }
 
 # from browser to show output:
- websocat -t "ws://localhost:12010/sessions/your-long-id/websocket" -
+
+```
+wsd -url=ws://localhost:12010/sessions/your-long-id/websocket
+```
 # or
  http get http://localhost:12010/sessions/your-long-id/output
  
