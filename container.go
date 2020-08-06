@@ -2,24 +2,26 @@ package dea
 
 import (
 	"bytes"
+	"context"
 	"sync"
 	"time"
 )
 
 type Container struct {
-	ID string
+	ID string `json:"id"`
 	// Cond is a condition variable to signal new terminal output presence in commands
-	Cond *sync.Cond
+	Cond *sync.Cond `json:"-"`
 	// StdinCond is a condition variable to signal that command is finished
-	StdinCond *sync.Cond
-	Stopped   bool
+	StdinCond *sync.Cond `json:"-"`
+	StoppedAt *time.Time `json:"stopped_at"`
+	Error     error      `json:"error"`
 	commands  []*Command
 	buffers   map[LineKind]*bytes.Buffer
+	Ctx       context.Context `json:"-"`
 }
 
 func NewContainer() *Container {
 	cnt := Container{
-		Stopped:   false,
 		Cond:      sync.NewCond(&sync.Mutex{}),
 		StdinCond: sync.NewCond(&sync.Mutex{}),
 		commands:  []*Command{},

@@ -56,7 +56,6 @@ func (c *Container) processOutput(kind LineKind, p []byte) {
 		}
 		cmd := c.LastCommand()
 		cmd.ExitCode = &exitCode
-		log.Println("stdin is free")
 		c.StdinCond.L.Lock()
 		c.StdinCond.Broadcast()
 		c.StdinCond.L.Unlock()

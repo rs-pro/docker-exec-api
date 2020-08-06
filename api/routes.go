@@ -1,12 +1,14 @@
 package api
 
 import (
+	"context"
 	"html/template"
 	"io"
 	"log"
 	"net/http"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/docker/docker/client"
 	"github.com/gin-gonic/gin"
@@ -80,6 +82,19 @@ func GetRouter() *gin.Engine {
 			c.JSON(http.StatusOK, pool.GetAllContainers())
 		})
 
+		r.GET("/sessions/:id", func(c *gin.Context) {
+			id := c.Param("id")
+			container := pool.GetContainerByToken(id)
+			if container == nil {
+				c.JSON(http.StatusNotFound, gin.H{
+					"error": "session with id " + id + " not found.",
+				})
+				return
+			}
+
+			c.JSON(http.StatusOK, container)
+		})
+
 		r.GET("/sessions/:id/ws", func(c *gin.Context) {
 			id := c.Param("id")
 			container := pool.GetContainerByToken(id)
@@ -133,8 +148,12 @@ func GetRouter() *gin.Engine {
 			})
 		}
 
-		r.GET("/health", func(c *gin.Context) {
-			_, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
+		h := r.Group("/health")
+		h.Use(CheckApiKey())
+		h.GET("", func(c *gin.Context) {
+			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			defer cancel()
+			cl, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
 			if err != nil {
 				c.JSON(http.StatusInternalServerError, gin.H{
 					"status":  "error",
@@ -144,7 +163,17 @@ func GetRouter() *gin.Engine {
 				return
 			}
 
-			c.JSON(http.StatusOK, gin.H{"status": "ok"})
+			info, err := cl.Info(ctx)
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{
+					"status":  "error",
+					"message": "failed to connect to docker daemon",
+					"error":   err.Error(),
+				})
+				return
+			}
+
+			c.JSON(http.StatusOK, gin.H{"status": "ok", "info": info})
 			return
 		})
 	}

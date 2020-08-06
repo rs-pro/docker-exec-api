@@ -7,7 +7,6 @@ import (
 	"os"
 	"time"
 
-	"github.com/davecgh/go-spew/spew"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/mount"
@@ -31,7 +30,7 @@ func (p *ContainerPool) Exec(params *ExecParams) (*Container, error) {
 	var cancel context.CancelFunc
 	if config.Config.Timeout > 0 {
 		ctx, cancel = context.WithTimeout(context.Background(), time.Duration(config.Config.Timeout)*time.Second)
-		defer cancel()
+		//defer cancel()
 	} else {
 		ctx = context.Background()
 	}
@@ -42,6 +41,7 @@ func (p *ContainerPool) Exec(params *ExecParams) (*Container, error) {
 	}
 
 	cnt := NewContainer()
+	cnt.Ctx = ctx
 	hostConfig := &container.HostConfig{
 		Mounts: []mount.Mount{},
 	}
@@ -132,21 +132,9 @@ func (p *ContainerPool) Exec(params *ExecParams) (*Container, error) {
 	}
 	hijacked, err := cli.ContainerAttach(ctx, id, options)
 	if err != nil {
+		hijacked.Close()
 		return nil, errors.Wrap(err, "failed to attach to container")
 	}
-	defer hijacked.Close()
-
-	// Copy any output to the trace
-	//stdoutErrCh := make(chan error)
-	//go func() {
-	//_, errCopy := stdcopy.StdCopy(cnt.StdOut(), cnt.StdErr(), hijacked.Reader)
-	//if errCopy != nil {
-	//log.Println("container attach stdcopy error", errCopy)
-	//stdoutErrCh <- errCopy
-	//} else {
-	//log.Println("container attach stdcopy returned without error")
-	//}
-	//}()
 
 	if err := cli.ContainerStart(ctx, resp.ID, types.ContainerStartOptions{}); err != nil {
 		return nil, errors.Wrap(err, "failed to start container")
@@ -200,11 +188,13 @@ func (p *ContainerPool) Exec(params *ExecParams) (*Container, error) {
 			}
 		}
 
-		//errClose := hijacked.CloseWrite()
-		//if errClose != nil {
-		//log.Println("stdin CloseWrite error", errClose)
-		//stdinErrCh <- errClose
-		//}
+		log.Println("done sending commands")
+
+		errClose := hijacked.CloseWrite()
+		if errClose != nil {
+			log.Println("stdin CloseWrite error", errClose)
+			stdinErrCh <- errClose
+		}
 	}()
 
 	statusCh, waitErrCh := cli.ContainerWait(ctx, resp.ID, container.WaitConditionNotRunning)
@@ -218,6 +208,7 @@ func (p *ContainerPool) Exec(params *ExecParams) (*Container, error) {
 		Details:    true,
 	})
 	if err != nil {
+		hijacked.Close()
 		return nil, errors.Wrap(err, "container log read error")
 	}
 
@@ -235,35 +226,37 @@ func (p *ContainerPool) Exec(params *ExecParams) (*Container, error) {
 	// - stdin has an error
 	// - stdout returns an error or nil, indicating the stream has ended and
 	//   the container has exited
-	for {
-		select {
-		case <-ctx.Done():
-			log.Println("context done")
-			return nil, errors.New("container execution aborted")
-		case err = <-stdinErrCh:
-			log.Println("stdin error", err)
-			if err != nil {
-				return nil, errors.Wrap(err, "container stdin write error")
+	go func() {
+		var err error
+		for {
+			select {
+			case <-ctx.Done():
+				log.Println("context done")
+				err = errors.New("context done")
+			case err = <-stdinErrCh:
+				log.Println("stdin error", err)
+			case err = <-logsErrCh:
+				log.Println("stdout error", err)
+			case err = <-waitErrCh:
+				log.Println("wait error", err)
+			case <-statusCh:
+				log.Println("container stopped normally")
+				break
 			}
-		case err = <-logsErrCh:
-			log.Println("stdout error", err)
 			if err != nil {
-				return nil, errors.Wrap(err, "container stdout read error")
+				cnt.Error = err
+				break
 			}
-		case err := <-waitErrCh:
-			log.Println("wait error", err)
-			if err != nil {
-				return nil, errors.Wrap(err, "container run/wait error")
-			}
-		case <-statusCh:
-			log.Println("container stopped normally")
 		}
-		spew.Dump(err)
-		if err != nil {
-			break
-		}
-	}
-	cnt.Stopped = true
+		t := time.Now()
+		cnt.StoppedAt = &t
+		cancel()
+		hijacked.Close()
+		time.Sleep(1 * time.Hour)
+		p.mutex.Lock()
+		delete(p.containers, cnt.ID)
+		p.mutex.Unlock()
+	}()
 
 	return cnt, nil
 }
@@ -276,15 +269,7 @@ func generateScript(commands []string) []string {
 			systemCommands = append(systemCommands, "echo '"+key+"' > ~/.ssh/known_hosts")
 		}
 	}
-	//systemCommands = append(systemCommands,
-	//"cat ~/.ssh/known_hosts",
-	//"ssh-add -L",
-	//"mkdir /data",
-	//"cd /data",
-	//)
 
 	systemCommands = append(systemCommands, commands...)
 	return systemCommands
-	//cmd := strings.Join(systemCommands, "\n") + "\n" + strings.Join(commands, "\n")
-	//return cmd
 }
