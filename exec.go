@@ -27,8 +27,14 @@ type ExecParams struct {
 }
 
 func (p *ContainerPool) Exec(params *ExecParams) (*Container, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(config.Config.Timeout)*time.Second)
-	defer cancel()
+	var ctx context.Context
+	var cancel context.CancelFunc
+	if config.Config.Timeout > 0 {
+		ctx, cancel = context.WithTimeout(context.Background(), time.Duration(config.Config.Timeout)*time.Second)
+		defer cancel()
+	} else {
+		ctx = context.Background()
+	}
 
 	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
 	if err != nil {
@@ -44,7 +50,7 @@ func (p *ContainerPool) Exec(params *ExecParams) (*Container, error) {
 		if params.PullImage != nil {
 			reader, err := cli.ImagePull(ctx, *params.PullImage, types.ImagePullOptions{})
 			if err != nil {
-				return nil, errors.Wrap(err, "failed to pull image to docker daemon")
+				return nil, errors.Wrap(err, "failed to pull image")
 			}
 			io.Copy(cnt.StdOut(), reader)
 		}
@@ -103,7 +109,7 @@ func (p *ContainerPool) Exec(params *ExecParams) (*Container, error) {
 		}
 	}
 
-	resp, err := cli.ContainerCreate(ctx, cfg, hostConfig, nil, "")
+	resp, err := cli.ContainerCreate(ctx, cfg, hostConfig, nil, nil, "")
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to create container")
 	}
@@ -151,12 +157,25 @@ func (p *ContainerPool) Exec(params *ExecParams) (*Container, error) {
 	// Write the input to the container and close its STDIN to get it to finish
 	stdinErrCh := make(chan error)
 	go func() {
+		_, errWrite := hijacked.Conn.Write([]byte(bashPre))
+		if errWrite != nil {
+			stdinErrCh <- errWrite
+			return
+		}
+		_, errWrite = hijacked.Conn.Write([]byte(bashTrapShellScript))
+		if errWrite != nil {
+			stdinErrCh <- errWrite
+			return
+		}
+
 		for _, cmd := range commands {
 			cnt.StartCommand(cmd)
 
 			cnt.Cond.L.Lock()
-			n, errWrite := hijacked.Conn.Write([]byte(cmd + "\n"))
-			log.Println("written command: ", cmd, " bytes:", n, "error:", err)
+			processed := PrepareCommand(cmd)
+			log.Println("command:", cmd)
+			//log.Println("writing command:", processed)
+			_, errWrite := hijacked.Conn.Write([]byte(processed))
 			if errWrite != nil {
 				log.Println("stdin write error", errWrite)
 				stdinErrCh <- errWrite
@@ -164,18 +183,28 @@ func (p *ContainerPool) Exec(params *ExecParams) (*Container, error) {
 				cnt.Cond.Broadcast()
 			}
 			cnt.Cond.L.Unlock()
+
+			cmd := cnt.LastCommand()
+			for cmd.ExitCode == nil {
+				cnt.StdinCond.L.Lock()
+				cnt.StdinCond.Wait()
+
+				if cmd.ExitCode == nil || *cmd.ExitCode != 0 {
+					log.Println("bad exit code, stopping")
+					stdinErrCh <- errors.New("exit code error")
+					cnt.StdinCond.L.Unlock()
+					return
+				} else {
+					cnt.StdinCond.L.Unlock()
+				}
+			}
 		}
 
-		//_, errCopy := io.Copy(hijacked.Conn, strings.NewReader(input))
-		//if errCopy != nil {
-		//log.Println("stdin write error", errCopy)
-		//stdinErrCh <- errCopy
+		//errClose := hijacked.CloseWrite()
+		//if errClose != nil {
+		//log.Println("stdin CloseWrite error", errClose)
+		//stdinErrCh <- errClose
 		//}
-		errClose := hijacked.CloseWrite()
-		if errClose != nil {
-			log.Println("stdin CloseWrite error", errClose)
-			stdinErrCh <- errClose
-		}
 	}()
 
 	statusCh, waitErrCh := cli.ContainerWait(ctx, resp.ID, container.WaitConditionNotRunning)
@@ -240,9 +269,7 @@ func (p *ContainerPool) Exec(params *ExecParams) (*Container, error) {
 }
 
 func generateScript(commands []string) []string {
-	systemCommands := []string{
-		"set -eo pipefail",
-	}
+	systemCommands := []string{}
 	if config.Config.ForwardSSHAgent {
 		systemCommands = append(systemCommands, "mkdir ~/.ssh")
 		for _, key := range config.Config.SSHHostKeys {

@@ -11,6 +11,7 @@ type Command struct {
 	Output    []*OutputLine `json:"-"`
 	StartedAt *time.Time    `json:"started_at"`
 	EndedAt   *time.Time    `json:"ended_at"`
+	ExitCode  *int          `json:"exit_code"`
 }
 
 func (c *Command) GetOutput() string {

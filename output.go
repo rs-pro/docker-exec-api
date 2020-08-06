@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"io"
 	"log"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -46,13 +47,31 @@ func (c *Container) processOutput(kind LineKind, p []byte) {
 			Time:    t,
 		})
 	}
+	lastLine := ret[len(ret)-1]
+	if bytes.HasPrefix(lastLine.Content, []byte(" "+deaPrefix)) {
+		parts := bytes.Split(lastLine.Content, []byte("||"))
+		exitCode, err := strconv.Atoi(string(parts[1]))
+		if err != nil {
+			log.Println("failed to parse exit code", err)
+		}
+		cmd := c.LastCommand()
+		cmd.ExitCode = &exitCode
+		log.Println("stdin is free")
+		c.StdinCond.L.Lock()
+		c.StdinCond.Broadcast()
+		c.StdinCond.L.Unlock()
+	}
 	c.appendLog(ret)
 	c.Cond.Broadcast()
 	c.Cond.L.Unlock()
 }
 
+func (c *Container) LastCommand() *Command {
+	return c.commands[len(c.commands)-1]
+}
+
 func (c *Container) appendLog(lines []*OutputLine) {
-	cmd := c.commands[len(c.commands)-1]
+	cmd := c.LastCommand()
 	for _, line := range lines {
 		cmd.Output = append(cmd.Output, line)
 	}
