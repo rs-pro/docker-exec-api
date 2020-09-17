@@ -19,12 +19,6 @@ import (
 
 var r *gin.Engine
 
-func init() {
-	if config.Config.GinMode == "release" {
-		gin.SetMode(gin.ReleaseMode)
-	}
-}
-
 func GetRouter() *gin.Engine {
 	if r == nil {
 		//r := gin.Default()
